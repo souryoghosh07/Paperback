@@ -1,0 +1,233 @@
+/* Paperback Reader - Apple Books Styling */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Themes */
+body.theme-light {
+    background-color: #F0F0F2;
+    color: #1A1A1A;
+    --page-bg: #FFFFFF;
+    --page-text: #1A1A1A;
+    --page-shadow: rgba(0, 0, 0, 0.15);
+    --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
+    --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
+}
+
+body.theme-sepia {
+    background-color: #EDE4D3;
+    color: #382E2B;
+    --page-bg: #F8F1E5;
+    --page-text: #382E2B;
+    --page-shadow: rgba(60, 40, 20, 0.18);
+    --spine-shadow: linear-gradient(to right, rgba(60,40,20,0.12) 0%, rgba(60,40,20,0.03) 12%, rgba(60,40,20,0) 30%);
+    --spine-shadow-right: linear-gradient(to left, rgba(60,40,20,0.12) 0%, rgba(60,40,20,0.03) 12%, rgba(60,40,20,0) 30%);
+}
+
+body.theme-matte {
+    background-color: #D9D9DE;
+    color: #242426;
+    --page-bg: #E8E8EC;
+    --page-text: #242426;
+    --page-shadow: rgba(0, 0, 0, 0.16);
+    --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.09) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
+    --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.09) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
+}
+
+body.theme-dark {
+    background-color: #121214;
+    color: #F2F2F7;
+    --page-bg: #1C1C1E;
+    --page-text: #F2F2F7;
+    --page-shadow: rgba(0, 0, 0, 0.6);
+    --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 12%, rgba(0,0,0,0) 30%);
+    --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 12%, rgba(0,0,0,0) 30%);
+}
+
+body.theme-oled {
+    background-color: #000000;
+    color: #D1D1D6;
+    --page-bg: #0A0A0A;
+    --page-text: #D1D1D6;
+    --page-shadow: rgba(255, 255, 255, 0.05);
+    --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0) 30%);
+    --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0) 30%);
+}
+
+/* App Container */
+#viewport {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Book Container */
+#book-container {
+    position: relative;
+    box-shadow: 0 15px 40px var(--page-shadow), 0 4px 10px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    transition: box-shadow 0.3s ease;
+}
+
+.page {
+    background-color: var(--page-bg) !important;
+    color: var(--page-text) !important;
+    overflow: hidden;
+    position: relative;
+}
+
+.page-content {
+    width: 100%;
+    height: 100%;
+    padding: 40px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 18px;
+    line-height: 1.6;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Spine Crease Shadows */
+.page:nth-child(odd)::after {
+    /* Right side page: shadow on left edge */
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 35px;
+    background: var(--spine-shadow);
+    pointer-events: none;
+}
+
+.page:nth-child(even)::after {
+    /* Left side page: shadow on right edge */
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 35px;
+    background: var(--spine-shadow-right);
+    pointer-events: none;
+}
+
+/* Header & Footer on Pages */
+.page-header {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    text-align: center;
+    margin-bottom: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: none;
+}
+
+.page-body {
+    flex: 1;
+    overflow: hidden;
+}
+
+.page-body p {
+    margin-bottom: 1.1em;
+    text-indent: 1.5em;
+}
+
+.page-body p:first-of-type {
+    text-indent: 0;
+}
+
+.page-body h1, .page-body h2, .page-body h3 {
+    margin-top: 0.8em;
+    margin-bottom: 0.4em;
+    font-weight: 600;
+}
+
+.page-footer {
+    font-size: 12px;
+    opacity: 0.5;
+    text-align: center;
+    margin-top: 12px;
+    user-select: none;
+}
+
+/* PDF Canvas Container */
+.pdf-page-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--page-bg);
+}
+
+.pdf-page-container canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Loading Spinner */
+#loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.2);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+}
+
+#loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: #FFFFFF;
+    animation: spin 0.8s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    margin-top: 14px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}

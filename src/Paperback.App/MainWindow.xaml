@@ -1,0 +1,244 @@
+<ui:FluentWindow x:Class="Paperback.App.MainWindow"
+                  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                  xmlns:controls="clr-namespace:Paperback.App.Views.Controls"
+                  mc:Ignorable="d"
+                  Title="Paperback"
+                  Height="780" Width="1160"
+                  MinHeight="600" MinWidth="850"
+                  WindowStartupLocation="CenterScreen"
+                  WindowBackdropType="Mica"
+                  ExtendsContentIntoTitleBar="True"
+                  Icon="/Assets/Icons/app_icon.ico"
+                  AllowDrop="True"
+                  DragEnter="OnWindowDragEnter"
+                  DragOver="OnWindowDragOver"
+                  DragLeave="OnWindowDragLeave"
+                  Drop="OnWindowDrop">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Windows 11 Native Fluent TitleBar -->
+        <ui:TitleBar Grid.Row="0"
+                     Title="Paperback"
+                     Icon="/Assets/Icons/app_icon.ico">
+            <ui:TitleBar.Header>
+                <Grid Margin="12,0,0,0">
+                    <!-- Live Search Box in TitleBar (Apple Books style) -->
+                    <ui:TextBox x:Name="SearchBox"
+                                PlaceholderText="Search title or author..."
+                                Width="260"
+                                Height="32"
+                                Icon="{ui:SymbolIcon Search24}"
+                                Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+            </ui:TitleBar.Header>
+        </ui:TitleBar>
+
+        <!-- Main Body: Sidebar + Library Canvas -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar (Frosted Glass Appearance) -->
+            <Border Grid.Column="0"
+                    BorderThickness="0,0,1,0"
+                    BorderBrush="#18000000"
+                    Background="#08888888"
+                    Padding="14,16,14,16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Section Header -->
+                    <TextBlock Text="LIBRARY"
+                               FontSize="11"
+                               FontWeight="Bold"
+                               Opacity="0.5"
+                               Margin="8,0,0,12" />
+
+                    <!-- Navigation Items -->
+                    <StackPanel Grid.Row="1">
+                        <ui:Button x:Name="NavAllBooks"
+                                   Content="All Books"
+                                   Icon="{ui:SymbolIcon Library24}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"
+                                   Appearance="Secondary"
+                                   Margin="0,0,0,4"
+                                   Click="OnNavAllBooksClicked" />
+
+                        <ui:Button x:Name="NavReadingNow"
+                                   Content="Reading Now"
+                                   Icon="{ui:SymbolIcon BookOpen24}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"
+                                   Appearance="Transparent"
+                                   Margin="0,0,0,4"
+                                   Click="OnNavReadingNowClicked" />
+
+                        <ui:Button x:Name="NavFinished"
+                                   Content="Finished"
+                                   Icon="{ui:SymbolIcon CheckmarkCircle24}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"
+                                   Appearance="Transparent"
+                                   Margin="0,0,0,16"
+                                   Click="OnNavFinishedClicked" />
+
+                        <!-- Formats Section -->
+                        <TextBlock Text="FORMATS"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Opacity="0.5"
+                                   Margin="8,0,0,10" />
+
+                        <ui:Button x:Name="NavEpubs"
+                                   Content="EPUB Books"
+                                   Icon="{ui:SymbolIcon DocumentText24}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"
+                                   Appearance="Transparent"
+                                   Margin="0,0,0,4"
+                                   Click="OnNavEpubsClicked" />
+
+                        <ui:Button x:Name="NavPdfs"
+                                   Content="PDF Documents"
+                                   Icon="{ui:SymbolIcon DocumentPdf24}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"
+                                   Appearance="Transparent"
+                                   Margin="0,0,0,4"
+                                   Click="OnNavPdfsClicked" />
+                    </StackPanel>
+
+                    <!-- Bottom Add Books Button -->
+                    <ui:Button Grid.Row="2"
+                               Content="Add Books"
+                               Icon="{ui:SymbolIcon Add24}"
+                               Appearance="Primary"
+                               HorizontalAlignment="Stretch"
+                               Height="36"
+                               Command="{Binding ImportFileCommand}" />
+                </Grid>
+            </Border>
+
+            <!-- Main Content Area: Header + Book Grid / Empty State -->
+            <Grid Grid.Column="1" Margin="28,20,28,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Section Top Bar -->
+                <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Category Title & Count -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SelectedCategory}"
+                                   FontSize="24"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{Binding BookCount, StringFormat=' ({0})'}"
+                                   FontSize="20"
+                                   Opacity="0.5"
+                                   Margin="4,3,0,0" />
+                    </StackPanel>
+
+                    <!-- Sort Selector Dropdown -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Sort by:"
+                                   FontSize="12"
+                                   Opacity="0.6"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" />
+                        <ComboBox x:Name="SortComboBox"
+                                  Width="130"
+                                  SelectedIndex="0"
+                                  SelectionChanged="OnSortSelectionChanged">
+                            <ComboBoxItem Content="Recent" />
+                            <ComboBoxItem Content="Title" />
+                            <ComboBoxItem Content="Author" />
+                            <ComboBoxItem Content="Date Added" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Book Grid (When books exist) -->
+                <ScrollViewer Grid.Row="1"
+                              x:Name="BooksScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding DisplayBooks}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <controls:BookCard Book="{Binding}"
+                                                   BookOpened="OnBookCardOpened"
+                                                   BookFinished="OnBookCardFinished"
+                                                   BookRemoved="OnBookCardRemoved" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Empty State (When no books match or library empty) -->
+                <Grid Grid.Row="1"
+                      x:Name="EmptyStateGrid"
+                      Visibility="Collapsed"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center">
+                        <ui:SymbolIcon Symbol="Book24"
+                                       FontSize="72"
+                                       Foreground="{StaticResource AppleAccentBrush}"
+                                       Opacity="0.6"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,20" />
+                        <TextBlock Text="Your Library is Empty"
+                                   FontSize="22"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="Drag and drop your EPUB and PDF files here,&#x0a;or click Add Books to get started."
+                                   FontSize="14"
+                                   Opacity="0.6"
+                                   TextAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,24" />
+                        <ui:Button Content="Add Your First Book"
+                                   Icon="{ui:SymbolIcon Add24}"
+                                   Appearance="Primary"
+                                   HorizontalAlignment="Center"
+                                   Height="38"
+                                   Padding="20,0"
+                                   Command="{Binding ImportFileCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- Drag & Drop Visual Overlay -->
+        <controls:DropZoneOverlay Grid.Row="0" Grid.RowSpan="2"
+                                  x:Name="DropOverlay" />
+    </Grid>
+</ui:FluentWindow>

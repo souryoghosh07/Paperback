@@ -1,0 +1,30 @@
+## Build and Output directories
+bin/
+obj/
+publish/
+out/
+TestResults/
+
+## Visual Studio & VS Code
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+.vscode/
+
+## User Application Data & Caches
+*.db-shm
+*.db-wal
+WebView2Data/
+covers/
+
+## OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp

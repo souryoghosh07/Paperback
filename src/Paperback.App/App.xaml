@@ -1,0 +1,35 @@
+<Application x:Class="Paperback.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Resources/Theme/Dark.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Wpf.Ui;component/Resources/Wpf.Ui.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Apple Books Inspired Color Palettes & Brushes -->
+            <SolidColorBrush x:Key="AppleAccentBrush" Color="#007AFF" />
+            <SolidColorBrush x:Key="AppleAccentHoverBrush" Color="#0062CC" />
+            
+            <SolidColorBrush x:Key="SepiaPaperBrush" Color="#F8F1E5" />
+            <SolidColorBrush x:Key="SepiaInkBrush" Color="#382E2B" />
+
+            <!-- Book Spine Highlight Gradient -->
+            <LinearGradientBrush x:Key="BookSpineHighlightBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#55FFFFFF" Offset="0.0" />
+                <GradientStop Color="#15FFFFFF" Offset="0.08" />
+                <GradientStop Color="#00000000" Offset="0.25" />
+                <GradientStop Color="#22000000" Offset="1.0" />
+            </LinearGradientBrush>
+            
+            <!-- Book Edge Crease Gradient -->
+            <LinearGradientBrush x:Key="BookEdgeCreaseBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#20000000" Offset="0.0" />
+                <GradientStop Color="#00000000" Offset="0.1" />
+            </LinearGradientBrush>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,91 @@
+name: Build and Release Paperback
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish as GitHub Release?'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Paperback.sln
+
+      - name: Build solution
+        run: dotnet build Paperback.sln -c Release --no-restore
+
+      - name: Run unit & integration tests
+        run: dotnet test Paperback.sln -c Release --no-build --verbosity normal
+
+  package:
+    name: Package & Publish Windows App
+    needs: test
+    runs-on: windows-latest
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish self-contained Windows executable (win-x64)
+        run: >
+          dotnet publish src/Paperback.App/Paperback.App.csproj 
+          -c Release 
+          -r win-x64 
+          --self-contained true 
+          -p:PublishSingleFile=true 
+          -o dist/Paperback-win-x64
+
+      - name: Create release zip bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/release | Out-Null
+          Compress-Archive -Path dist/Paperback-win-x64/* -DestinationPath dist/release/Paperback-win-x64.zip -Force
+          Get-Item dist/release/Paperback-win-x64.zip | Select-Object Name, Length
+
+      - name: Upload build artifact (Downloadable from Actions run)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Paperback-Windows-x64
+          path: dist/release/Paperback-win-x64.zip
+          retention-days: 30
+
+      - name: Create GitHub Release (On tag or manual release trigger)
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/release/Paperback-win-x64.zip
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Paperback Latest' }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

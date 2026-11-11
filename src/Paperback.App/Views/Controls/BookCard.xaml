@@ -1,0 +1,201 @@
+<UserControl x:Class="Paperback.App.Views.Controls.BookCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             mc:Ignorable="d" 
+             d:DesignHeight="320" d:DesignWidth="180"
+             Cursor="Hand"
+             MouseLeftButtonUp="OnCardClicked">
+    
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Grid Width="164" Margin="14,12,14,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="240" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 3D Book Cover Card -->
+        <Border Grid.Row="0"
+                x:Name="CardBorder"
+                CornerRadius="6"
+                Background="#2D3139"
+                RenderTransformOrigin="0.5,0.5">
+            <Border.RenderTransform>
+                <ScaleTransform x:Name="CardScale" ScaleX="1.0" ScaleY="1.0" />
+            </Border.RenderTransform>
+            <Border.Effect>
+                <DropShadowEffect x:Name="CardShadow"
+                                  BlurRadius="18"
+                                  ShadowDepth="6"
+                                  Direction="270"
+                                  Opacity="0.25"
+                                  Color="#000000" />
+            </Border.Effect>
+
+            <Grid ClipToBounds="True">
+                <!-- Cover Image (if present) -->
+                <Image x:Name="CoverImage"
+                       Stretch="UniformToFill"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+
+                <!-- Fallback Clothbound Cover (if no image) -->
+                <Border x:Name="FallbackCover"
+                        Background="#2B3245"
+                        Padding="16,24">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Top decorative icon -->
+                        <ui:SymbolIcon Symbol="Book24"
+                                       FontSize="28"
+                                       Foreground="#8E9CB2"
+                                       HorizontalAlignment="Center"
+                                       Grid.Row="0" />
+
+                        <!-- Title & Author on Cloth Cover -->
+                        <StackPanel Grid.Row="1"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center">
+                            <TextBlock x:Name="FallbackTitle"
+                                       Text="Book Title"
+                                       FontFamily="Georgia"
+                                       FontSize="14"
+                                       FontWeight="Bold"
+                                       Foreground="#F1F5F9"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       MaxHeight="70"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="FallbackAuthor"
+                                       Text="Author Name"
+                                       FontFamily="Georgia"
+                                       FontSize="11"
+                                       FontStyle="Italic"
+                                       Foreground="#94A3B8"
+                                       TextAlignment="Center"
+                                       Margin="0,8,0,0"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <!-- Bottom subtle border -->
+                        <Border Grid.Row="2"
+                                Height="1"
+                                Background="#3E475E"
+                                HorizontalAlignment="Stretch"
+                                Margin="12,0" />
+                    </Grid>
+                </Border>
+
+                <!-- Left Edge 3D Spine Highlight Gradient -->
+                <Border HorizontalAlignment="Left"
+                        Width="18"
+                        Background="{StaticResource BookSpineHighlightBrush}"
+                        IsHitTestVisible="False" />
+
+                <!-- Right Edge Paper Trim Line -->
+                <Border HorizontalAlignment="Right"
+                        Width="1"
+                        Background="#30000000"
+                        IsHitTestVisible="False" />
+
+                <!-- Format Badge (EPUB / PDF) -->
+                <Border HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="8"
+                        Padding="7,3"
+                        CornerRadius="4"
+                        Background="#AA000000">
+                    <TextBlock x:Name="FormatText"
+                               Text="EPUB"
+                               FontSize="9"
+                               FontWeight="Bold"
+                               Foreground="#FFFFFF" />
+                </Border>
+
+                <!-- Reading Progress Track at bottom of cover -->
+                <Border VerticalAlignment="Bottom"
+                        Height="4"
+                        Background="#40000000">
+                    <ProgressBar x:Name="CoverProgressBar"
+                                 Height="4"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Foreground="{StaticResource AppleAccentBrush}"
+                                 Background="Transparent"
+                                 BorderThickness="0" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Book Title Below Cover -->
+        <TextBlock Grid.Row="1"
+                   x:Name="TitleText"
+                   Text="Book Title"
+                   FontWeight="SemiBold"
+                   FontSize="13"
+                   Margin="2,10,2,2"
+                   TextWrapping="Wrap"
+                   MaxHeight="36"
+                   TextTrimming="CharacterEllipsis"
+                   LineHeight="16" />
+
+        <!-- Author Below Title -->
+        <TextBlock Grid.Row="2"
+                   x:Name="AuthorText"
+                   Text="Author Name"
+                   FontSize="11"
+                   Opacity="0.65"
+                   Margin="2,0,2,2"
+                   TextTrimming="CharacterEllipsis" />
+
+        <!-- Progress Text -->
+        <TextBlock Grid.Row="3"
+                   x:Name="ProgressText"
+                   Text="Not started"
+                   FontSize="10"
+                   FontWeight="Medium"
+                   Foreground="{StaticResource AppleAccentBrush}"
+                   Margin="2,1,2,0" />
+    </Grid>
+
+    <!-- Context Menu -->
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Read Now" Click="OnReadClicked">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="BookOpen24" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Show in File Explorer" Click="OnShowInExplorerClicked">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="FolderOpen24" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="Mark as Finished" Click="OnMarkFinishedClicked">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Checkmark24" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="Remove from Library" Click="OnRemoveClicked">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Delete24" />
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+    </UserControl.ContextMenu>
+</UserControl>

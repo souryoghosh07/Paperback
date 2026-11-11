@@ -1,0 +1,44 @@
+<UserControl x:Class="Paperback.App.Views.Controls.DropZoneOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             mc:Ignorable="d" 
+             d:DesignHeight="400" d:DesignWidth="600"
+             Visibility="Collapsed"
+             IsHitTestVisible="False">
+    
+    <Grid Background="#CC000000">
+        <Border BorderBrush="{StaticResource AppleAccentBrush}"
+                BorderThickness="3"
+                CornerRadius="16"
+                Margin="40"
+                Background="#33007AFF">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="BorderThickness" Value="3" />
+                </Style>
+            </Border.Style>
+
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                <ui:SymbolIcon Symbol="ArrowDownload24"
+                               FontSize="64"
+                               Foreground="{StaticResource AppleAccentBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,16" />
+                <TextBlock Text="Add to Paperback"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="#FFFFFF"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8" />
+                <TextBlock Text="Drop EPUB or PDF files anywhere to import into your library"
+                           FontSize="14"
+                           Foreground="#CCDDEE"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
