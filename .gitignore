@@ -2,8 +2,10 @@
 bin/
 obj/
 publish/
+dist/
 out/
 TestResults/
+*.zip
 
 ## Visual Studio & VS Code
 .vs/
