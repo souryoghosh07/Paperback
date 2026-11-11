@@ -6,6 +6,7 @@ dist/
 out/
 TestResults/
 *.zip
+Paperback-*/
 
 ## Visual Studio & VS Code
 .vs/
