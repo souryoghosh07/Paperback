@@ -15,7 +15,7 @@ html, body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Themes */
+/* ==================== THEMES ==================== */
 body.theme-light {
     background-color: #F0F0F2;
     color: #1A1A1A;
@@ -24,6 +24,10 @@ body.theme-light {
     --page-shadow: rgba(0, 0, 0, 0.15);
     --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
     --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
+    --chrome-bg: rgba(245, 245, 247, 0.88);
+    --chrome-text: #1A1A1A;
+    --chrome-border: rgba(0, 0, 0, 0.12);
+    --chrome-btn-hover: rgba(0, 0, 0, 0.08);
 }
 
 body.theme-sepia {
@@ -34,6 +38,10 @@ body.theme-sepia {
     --page-shadow: rgba(60, 40, 20, 0.18);
     --spine-shadow: linear-gradient(to right, rgba(60,40,20,0.12) 0%, rgba(60,40,20,0.03) 12%, rgba(60,40,20,0) 30%);
     --spine-shadow-right: linear-gradient(to left, rgba(60,40,20,0.12) 0%, rgba(60,40,20,0.03) 12%, rgba(60,40,20,0) 30%);
+    --chrome-bg: rgba(240, 230, 215, 0.90);
+    --chrome-text: #382E2B;
+    --chrome-border: rgba(60, 40, 20, 0.15);
+    --chrome-btn-hover: rgba(60, 40, 20, 0.08);
 }
 
 body.theme-matte {
@@ -44,6 +52,10 @@ body.theme-matte {
     --page-shadow: rgba(0, 0, 0, 0.16);
     --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.09) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
     --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.09) 0%, rgba(0,0,0,0.02) 10%, rgba(0,0,0,0) 25%);
+    --chrome-bg: rgba(220, 220, 225, 0.90);
+    --chrome-text: #242426;
+    --chrome-border: rgba(0, 0, 0, 0.14);
+    --chrome-btn-hover: rgba(0, 0, 0, 0.08);
 }
 
 body.theme-dark {
@@ -54,6 +66,10 @@ body.theme-dark {
     --page-shadow: rgba(0, 0, 0, 0.6);
     --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 12%, rgba(0,0,0,0) 30%);
     --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 12%, rgba(0,0,0,0) 30%);
+    --chrome-bg: rgba(28, 28, 32, 0.88);
+    --chrome-text: #F2F2F7;
+    --chrome-border: rgba(255, 255, 255, 0.14);
+    --chrome-btn-hover: rgba(255, 255, 255, 0.12);
 }
 
 body.theme-oled {
@@ -64,9 +80,13 @@ body.theme-oled {
     --page-shadow: rgba(255, 255, 255, 0.05);
     --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0) 30%);
     --spine-shadow-right: linear-gradient(to left, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 15%, rgba(0,0,0,0) 30%);
+    --chrome-bg: rgba(14, 14, 16, 0.92);
+    --chrome-text: #D1D1D6;
+    --chrome-border: rgba(255, 255, 255, 0.18);
+    --chrome-btn-hover: rgba(255, 255, 255, 0.14);
 }
 
-/* App Container */
+/* ==================== VIEWPORT & BOOK ==================== */
 #viewport {
     width: 100%;
     height: 100%;
@@ -77,7 +97,6 @@ body.theme-oled {
     overflow: hidden;
 }
 
-/* Book Container */
 #book-container {
     position: relative;
     box-shadow: 0 15px 40px var(--page-shadow), 0 4px 10px rgba(0,0,0,0.1);
@@ -107,7 +126,6 @@ body.theme-oled {
 
 /* Spine Crease Shadows */
 .page:nth-child(odd)::after {
-    /* Right side page: shadow on left edge */
     content: '';
     position: absolute;
     top: 0;
@@ -119,7 +137,6 @@ body.theme-oled {
 }
 
 .page:nth-child(even)::after {
-    /* Left side page: shadow on right edge */
     content: '';
     position: absolute;
     top: 0;
@@ -130,7 +147,6 @@ body.theme-oled {
     pointer-events: none;
 }
 
-/* Header & Footer on Pages */
 .page-header {
     font-size: 11px;
     letter-spacing: 0.06em;
@@ -189,7 +205,399 @@ body.theme-oled {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Loading Spinner */
+/* ==================== FLOATING TOOLBARS ==================== */
+.chrome-bar {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    background: var(--chrome-bg);
+    color: var(--chrome-text);
+    border: 1px solid var(--chrome-border);
+    border-radius: 14px;
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.top-chrome {
+    top: 14px;
+    height: 52px;
+    transform: translateY(0);
+}
+
+.top-chrome.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-16px);
+}
+
+.bottom-chrome {
+    bottom: 14px;
+    height: 48px;
+    transform: translateY(0);
+}
+
+.bottom-chrome.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(16px);
+}
+
+.chrome-left, .chrome-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chrome-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 45%;
+    overflow: hidden;
+}
+
+.book-title {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.book-author {
+    font-size: 11px;
+    opacity: 0.65;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.chrome-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    background: transparent;
+    color: var(--chrome-text);
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+    user-select: none;
+}
+
+.chrome-btn:hover {
+    background-color: var(--chrome-btn-hover);
+}
+
+.chrome-btn:active {
+    transform: scale(0.96);
+}
+
+.chrome-btn.icon-only {
+    width: 34px;
+    padding: 0;
+}
+
+.chrome-btn.aa-btn {
+    font-family: Georgia, serif;
+    font-size: 16px;
+    font-weight: bold;
+    width: 38px;
+    padding: 0;
+}
+
+/* Bottom Bar Scrubber */
+.chapter-title {
+    font-size: 12px;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+    margin: 0 12px;
+}
+
+.slider-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    margin: 0 14px;
+}
+
+.slider-container input[type="range"] {
+    width: 100%;
+    accent-color: #007AFF;
+    cursor: pointer;
+}
+
+.page-progress-text {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    margin: 0 12px;
+    opacity: 0.9;
+}
+
+/* ==================== TYPOGRAPHY & THEMES POPOVER ==================== */
+.popover {
+    position: absolute;
+    top: 72px;
+    right: 24px;
+    width: 320px;
+    background: var(--chrome-bg);
+    color: var(--chrome-text);
+    border: 1px solid var(--chrome-border);
+    border-radius: 16px;
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
+    padding: 18px;
+    z-index: 1000;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.popover.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px) scale(0.97);
+}
+
+.popover-section {
+    margin-bottom: 14px;
+}
+
+.section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.popover-divider {
+    height: 1px;
+    background: var(--chrome-border);
+    margin: 12px 0;
+}
+
+/* Theme Grid */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.theme-btn {
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, serif;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.theme-btn:hover {
+    transform: scale(1.04);
+}
+
+.theme-btn.active {
+    box-shadow: 0 0 0 2px #007AFF;
+}
+
+.theme-btn-light { background-color: #FFFFFF; color: #1A1A1A; }
+.theme-btn-sepia { background-color: #F8F1E5; color: #382E2B; }
+.theme-btn-matte { background-color: #E8E8EC; color: #242426; }
+.theme-btn-dark { background-color: #1C1C1E; color: #F2F2F7; border-color: rgba(255,255,255,0.15); }
+.theme-btn-oled { background-color: #000000; color: #D1D1D6; border-color: rgba(255,255,255,0.25); }
+
+/* Font Select */
+.popover-select {
+    width: 100%;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--chrome-border);
+    background: rgba(128, 128, 128, 0.12);
+    color: var(--chrome-text);
+    padding: 0 10px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+}
+
+/* Font Size Row */
+.font-size-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.font-size-row input[type="range"] {
+    flex: 1;
+    accent-color: #007AFF;
+}
+
+.size-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--chrome-border);
+    background: rgba(128, 128, 128, 0.12);
+    color: var(--chrome-text);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.size-btn.large {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* Align Row */
+.align-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.toggle-btn {
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--chrome-border);
+    background: transparent;
+    color: var(--chrome-text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.toggle-btn.active {
+    background: #007AFF;
+    color: #FFFFFF;
+    border-color: #007AFF;
+}
+
+.pin-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.pin-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #007AFF;
+    cursor: pointer;
+}
+
+/* ==================== TABLE OF CONTENTS DRAWER ==================== */
+.drawer {
+    position: absolute;
+    top: 14px;
+    bottom: 14px;
+    right: 20px;
+    width: 340px;
+    background: var(--chrome-bg);
+    color: var(--chrome-text);
+    border: 1px solid var(--chrome-border);
+    border-radius: 16px;
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.drawer.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(20px);
+}
+
+.drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--chrome-border);
+}
+
+.drawer-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.drawer-close {
+    background: transparent;
+    border: none;
+    color: var(--chrome-text);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.drawer-close:hover {
+    opacity: 1;
+}
+
+.drawer-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.toc-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.toc-item:hover {
+    background-color: var(--chrome-btn-hover);
+}
+
+.toc-item .toc-page {
+    font-size: 11px;
+    opacity: 0.5;
+    margin-left: 8px;
+}
+
+/* ==================== LOADING OVERLAY ==================== */
 #loading-overlay {
     position: absolute;
     top: 0;
@@ -200,9 +608,9 @@ body.theme-oled {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0,0,0,0.3);
     backdrop-filter: blur(8px);
-    z-index: 1000;
+    z-index: 2000;
     transition: opacity 0.3s ease;
 }
 

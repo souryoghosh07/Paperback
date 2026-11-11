@@ -9,12 +9,116 @@
     <script src="js/pdf.min.js"></script>
 </head>
 <body class="theme-sepia">
+    <!-- Floating Top Chrome Bar (Apple Books style) -->
+    <header id="top-bar" class="chrome-bar top-chrome">
+        <div class="chrome-left">
+            <button id="btn-library" class="chrome-btn" title="Back to Library">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                <span>Library</span>
+            </button>
+        </div>
+        <div class="chrome-center">
+            <div id="book-title" class="book-title">Paperback</div>
+            <div id="book-author" class="book-author">Loading...</div>
+        </div>
+        <div class="chrome-right">
+            <button id="btn-toc" class="chrome-btn icon-only" title="Table of Contents">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+            </button>
+            <button id="btn-typography" class="chrome-btn aa-btn" title="Themes &amp; Typography">
+                <span>Aa</span>
+            </button>
+            <button id="btn-bookmark" class="chrome-btn icon-only" title="Bookmark This Page">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+            </button>
+            <button id="btn-fullscreen" class="chrome-btn icon-only" title="Toggle Fullscreen">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Reading Viewport & 3D Book -->
     <div id="viewport">
         <div id="book-container">
             <div id="book"></div>
         </div>
     </div>
 
+    <!-- Floating Bottom Chrome Bar (Scrubber & Details) -->
+    <footer id="bottom-bar" class="chrome-bar bottom-chrome">
+        <button id="btn-prev" class="chrome-btn icon-only" title="Previous Page">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <div id="chapter-title" class="chapter-title">Chapter 1</div>
+        <div class="slider-container">
+            <input type="range" id="page-slider" min="1" max="1" value="1" step="1" />
+        </div>
+        <div id="page-progress-text" class="page-progress-text">Page 1 of 1 (0%)</div>
+        <button id="btn-next" class="chrome-btn icon-only" title="Next Page">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+    </footer>
+
+    <!-- Typography & Theme Popover Menu -->
+    <div id="typography-popover" class="popover hidden">
+        <div class="popover-section">
+            <div class="section-label">THEME</div>
+            <div class="theme-grid">
+                <button class="theme-btn theme-btn-light" data-theme="light" title="White"><span>Aa</span></button>
+                <button class="theme-btn theme-btn-sepia active" data-theme="sepia" title="Sepia"><span>Aa</span></button>
+                <button class="theme-btn theme-btn-matte" data-theme="matte" title="Matte Gray"><span>Aa</span></button>
+                <button class="theme-btn theme-btn-dark" data-theme="dark" title="Dark Slate"><span>Aa</span></button>
+                <button class="theme-btn theme-btn-oled" data-theme="oled" title="OLED Black"><span>Aa</span></button>
+            </div>
+        </div>
+
+        <div class="popover-divider"></div>
+
+        <div class="popover-section">
+            <div class="section-label">FONT</div>
+            <select id="font-select" class="popover-select">
+                <option value="Georgia">Georgia</option>
+                <option value="'Palatino Linotype', Palatino, serif">Palatino</option>
+                <option value="'Segoe UI', -apple-system, sans-serif">Segoe UI</option>
+                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                <option value="Consolas, monospace">Consolas</option>
+            </select>
+        </div>
+
+        <div class="popover-section">
+            <div class="section-label">FONT SIZE</div>
+            <div class="font-size-row">
+                <button id="btn-font-decrease" class="size-btn">A</button>
+                <input type="range" id="font-size-slider" min="13" max="32" value="18" step="1" />
+                <button id="btn-font-increase" class="size-btn large">A</button>
+            </div>
+        </div>
+
+        <div class="popover-section">
+            <div class="align-row">
+                <button id="btn-justify" class="toggle-btn active">Justified</button>
+                <button id="btn-align-left" class="toggle-btn">Left Align</button>
+            </div>
+        </div>
+
+        <div class="popover-divider"></div>
+
+        <div class="popover-section pin-row">
+            <label for="chk-pin-toolbar">Always show toolbar</label>
+            <input type="checkbox" id="chk-pin-toolbar" />
+        </div>
+    </div>
+
+    <!-- Table of Contents Slide-Out Drawer -->
+    <div id="toc-drawer" class="drawer hidden">
+        <div class="drawer-header">
+            <h3>Table of Contents</h3>
+            <button id="btn-close-toc" class="drawer-close">&times;</button>
+        </div>
+        <div id="toc-list" class="drawer-content"></div>
+    </div>
+
+    <!-- Loading Overlay -->
     <div id="loading-overlay">
         <div class="spinner"></div>
         <div class="loading-text">Loading book...</div>

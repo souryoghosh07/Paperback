@@ -5,10 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 using Paperback.Core.Interfaces;
 using Paperback.Core.Models;
@@ -24,18 +20,10 @@ public partial class ReaderWindow : FluentWindow
     private readonly IDatabaseService _databaseService;
     private readonly IEpubService _epubService;
 
-    private readonly DispatcherTimer _autoHideTimer;
-    private bool _isChromeVisible = true;
     private bool _isEngineReady = false;
-
     private int _currentPage = 1;
     private int _totalPages = 1;
     private double _progressPercent = 0.0;
-
-    private string _currentTheme = "sepia";
-    private string _currentFont = "Georgia";
-    private double _currentFontSize = 18;
-    private bool _isJustified = true;
 
     public ReaderWindow(
         Book book,
@@ -50,26 +38,16 @@ public partial class ReaderWindow : FluentWindow
         _databaseService = databaseService;
         _epubService = epubService;
 
-        BookTitleHeader.Text = _book.Title;
-        BookAuthorHeader.Text = _book.Author;
-
-        _autoHideTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(2.8)
-        };
-        _autoHideTimer.Tick += OnAutoHideTimerTick;
+        Title = $"{_book.Title} - Paperback";
+        TitleBar.Title = _book.Title;
 
         Loaded += async (s, e) =>
         {
             await InitializeWebViewAsync();
-            await LoadTableOfContentsAsync();
-            _autoHideTimer.Start();
         };
 
         Closed += async (s, e) =>
         {
-            _autoHideTimer.Stop();
-            // Save final progress
             await _libraryService.UpdateReadingProgressAsync(_book.Id, _currentPage, _totalPages, _progressPercent, null);
         };
     }
@@ -88,7 +66,6 @@ public partial class ReaderWindow : FluentWindow
             string engineFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReaderEngine");
             if (!Directory.Exists(engineFolder))
             {
-                // Fallback to project directory
                 engineFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "ReaderEngine"));
             }
 
@@ -97,7 +74,6 @@ public partial class ReaderWindow : FluentWindow
                 engineFolder,
                 CoreWebView2HostResourceAccessKind.Allow);
 
-            // Also allow reading local files (for PDF and EPUB resources)
             string bookDir = Path.GetDirectoryName(_book.FilePath) ?? "";
             if (Directory.Exists(bookDir))
             {
@@ -141,31 +117,38 @@ public partial class ReaderWindow : FluentWindow
                     _currentPage = node["currentPage"]?.GetValue<int>() ?? 1;
                     _totalPages = node["totalPages"]?.GetValue<int>() ?? 1;
                     _progressPercent = node["progressPercent"]?.GetValue<double>() ?? 0.0;
-                    UpdatePageProgressUi();
-                    // Debounced progress persistence
                     _ = _libraryService.UpdateReadingProgressAsync(_book.Id, _currentPage, _totalPages, _progressPercent, null);
                     break;
 
-                case "bookLoaded":
-                    _totalPages = node["totalPages"]?.GetValue<int>() ?? 1;
-                    PageSlider.Maximum = Math.Max(_totalPages, 1);
-                    UpdatePageProgressUi();
+                case "closeReader":
+                    Close();
                     break;
 
-                case "toggleUi":
-                    ToggleChromeVisibility();
+                case "toggleFullscreen":
+                    ToggleFullscreen();
+                    break;
+
+                case "addBookmark":
+                    int bookmarkPage = node["page"]?.GetValue<int>() ?? _currentPage;
+                    await AddBookmarkAsync(bookmarkPage);
                     break;
             }
         }
         catch
         {
-            // Ignore parsing glitches
+            // Ignore parse errors
         }
     }
 
     private async Task SendBookToEngineAsync()
     {
         if (!_isEngineReady || ReaderWebView.CoreWebView2 == null) return;
+
+        List<ChapterItem>? toc = null;
+        if (_book.Format.Equals("EPUB", StringComparison.OrdinalIgnoreCase))
+        {
+            toc = await _epubService.GetTableOfContentsAsync(_book.FilePath);
+        }
 
         if (_book.Format.Equals("PDF", StringComparison.OrdinalIgnoreCase))
         {
@@ -181,14 +164,14 @@ public partial class ReaderWindow : FluentWindow
                     title = _book.Title,
                     author = _book.Author,
                     fileUrl = fileUrl,
-                    startPage = Math.Max(_book.CurrentPage, 1)
+                    startPage = Math.Max(_book.CurrentPage, 1),
+                    toc = toc
                 }
             };
             ReaderWebView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(payload));
         }
         else
         {
-            // EPUB Book
             var chapters = await ExtractEpubChaptersAsync(_book.FilePath);
             var payload = new
             {
@@ -199,7 +182,8 @@ public partial class ReaderWindow : FluentWindow
                     title = _book.Title,
                     author = _book.Author,
                     startPage = Math.Max(_book.CurrentPage, 1),
-                    chapters = chapters
+                    chapters = chapters,
+                    toc = toc
                 }
             };
             ReaderWebView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(payload));
@@ -218,7 +202,6 @@ public partial class ReaderWindow : FluentWindow
                 foreach (var file in epubBook.ReadingOrder)
                 {
                     string rawHtml = file.Content ?? "";
-                    // Strip HTML tags for clean paragraph formatting in 3D reader
                     string plainText = StripHtml(rawHtml);
                     if (!string.IsNullOrWhiteSpace(plainText))
                     {
@@ -253,7 +236,6 @@ public partial class ReaderWindow : FluentWindow
 
     private static string StripHtml(string html)
     {
-        // Replace paragraph and break tags with newlines
         string text = html.Replace("</p>", "\n\n")
                           .Replace("<p>", "")
                           .Replace("<br/>", "\n")
@@ -265,144 +247,18 @@ public partial class ReaderWindow : FluentWindow
         return System.Text.RegularExpressions.Regex.Replace(text, "<.*?>", string.Empty).Trim();
     }
 
-    private async Task LoadTableOfContentsAsync()
-    {
-        if (_book.Format.Equals("EPUB", StringComparison.OrdinalIgnoreCase))
-        {
-            var toc = await _epubService.GetTableOfContentsAsync(_book.FilePath);
-            TocListBox.ItemsSource = toc;
-        }
-    }
-
-    private void UpdatePageProgressUi()
-    {
-        PageSlider.Value = _currentPage;
-        PageProgressText.Text = $"Page {_currentPage} of {_totalPages} ({Math.Round(_progressPercent)}%)";
-    }
-
-    // Auto-hiding chrome logic
-    private void OnWindowMouseMove(object sender, MouseEventArgs e)
-    {
-        ShowChrome();
-        _autoHideTimer.Stop();
-        _autoHideTimer.Start();
-    }
-
-    private void OnAutoHideTimerTick(object? sender, EventArgs e)
-    {
-        // Only hide if popups are not open
-        if (TypographyPopup.Visibility != Visibility.Visible && TocDrawer.Visibility != Visibility.Visible)
-        {
-            HideChrome();
-        }
-    }
-
-    private void ShowChrome()
-    {
-        if (!_isChromeVisible)
-        {
-            _isChromeVisible = true;
-            AnimateOpacity(TopBar, 1.0);
-            AnimateOpacity(BottomBar, 1.0);
-        }
-    }
-
-    private void HideChrome()
-    {
-        if (_isChromeVisible)
-        {
-            _isChromeVisible = false;
-            AnimateOpacity(TopBar, 0.0);
-            AnimateOpacity(BottomBar, 0.0);
-        }
-    }
-
-    private void ToggleChromeVisibility()
-    {
-        if (_isChromeVisible) HideChrome();
-        else ShowChrome();
-    }
-
-    private static void AnimateOpacity(UIElement elem, double target)
-    {
-        var anim = new DoubleAnimation(target, TimeSpan.FromMilliseconds(220))
-        {
-            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
-        };
-        elem.BeginAnimation(OpacityProperty, anim);
-    }
-
-    // Navigation & Page Turn Actions
-    private void OnPrevPageClicked(object sender, RoutedEventArgs e)
-    {
-        PostAction("prevPage");
-    }
-
-    private void OnNextPageClicked(object sender, RoutedEventArgs e)
-    {
-        PostAction("nextPage");
-    }
-
-    private void OnPageSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_isEngineReady && Math.Abs(e.NewValue - _currentPage) >= 1)
-        {
-            int target = (int)e.NewValue;
-            var payload = new { action = "jumpToPage", page = target };
-            ReaderWebView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(payload));
-        }
-    }
-
-    private void OnTocItemSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (TocListBox.SelectedItem is ChapterItem chapter)
-        {
-            var payload = new { action = "jumpToPage", page = chapter.PageNumber };
-            ReaderWebView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(payload));
-            TocDrawer.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private void OnBackToLibraryClicked(object sender, RoutedEventArgs e)
-    {
-        Close();
-    }
-
-    private void OnToggleTocClicked(object sender, RoutedEventArgs e)
-    {
-        TypographyPopup.Visibility = Visibility.Collapsed;
-        TocDrawer.Visibility = TocDrawer.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private void OnCloseTocClicked(object sender, RoutedEventArgs e)
-    {
-        TocDrawer.Visibility = Visibility.Collapsed;
-    }
-
-    private void OnToggleTypographyClicked(object sender, RoutedEventArgs e)
-    {
-        TocDrawer.Visibility = Visibility.Collapsed;
-        TypographyPopup.Visibility = TypographyPopup.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private async void OnToggleBookmarkClicked(object sender, RoutedEventArgs e)
+    private async Task AddBookmarkAsync(int page)
     {
         var bookmark = new Bookmark
         {
             BookId = _book.Id,
-            PageIndex = _currentPage,
-            Title = $"Page {_currentPage}"
+            PageIndex = page,
+            Title = $"Page {page}"
         };
         await _databaseService.AddBookmarkAsync(bookmark);
-
-        System.Windows.MessageBox.Show(
-            $"Bookmark saved for Page {_currentPage}!",
-            "Bookmark Added",
-            System.Windows.MessageBoxButton.OK,
-            System.Windows.MessageBoxImage.Information);
     }
 
-    private void OnToggleFullscreenClicked(object sender, RoutedEventArgs e)
+    private void ToggleFullscreen()
     {
         if (WindowState == WindowState.Maximized && WindowStyle == WindowStyle.None)
         {
@@ -414,75 +270,5 @@ public partial class ReaderWindow : FluentWindow
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
         }
-    }
-
-    // Themes
-    private void OnThemeWhiteClicked(object sender, MouseButtonEventArgs e) => ApplyTheme("light");
-    private void OnThemeSepiaClicked(object sender, MouseButtonEventArgs e) => ApplyTheme("sepia");
-    private void OnThemeMatteClicked(object sender, MouseButtonEventArgs e) => ApplyTheme("matte");
-    private void OnThemeDarkClicked(object sender, MouseButtonEventArgs e) => ApplyTheme("dark");
-    private void OnThemeOledClicked(object sender, MouseButtonEventArgs e) => ApplyTheme("oled");
-
-    private void ApplyTheme(string theme)
-    {
-        _currentTheme = theme;
-        var payload = new { action = "setTheme", theme = theme };
-        ReaderWebView.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(payload));
-    }
-
-    // Typography
-    private void OnFontFamilyChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (FontFamilyCombo?.SelectedItem is ComboBoxItem item)
-        {
-            _currentFont = item.Content.ToString() ?? "Georgia";
-            SendTypographyUpdate();
-        }
-    }
-
-    private void OnFontSizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        _currentFontSize = e.NewValue;
-        SendTypographyUpdate();
-    }
-
-    private void OnToggleJustifyClicked(object sender, RoutedEventArgs e)
-    {
-        _isJustified = true;
-        JustifyButton.Appearance = ControlAppearance.Secondary;
-        AlignLeftButton.Appearance = ControlAppearance.Transparent;
-        SendTypographyUpdate();
-    }
-
-    private void OnAlignLeftClicked(object sender, RoutedEventArgs e)
-    {
-        _isJustified = false;
-        AlignLeftButton.Appearance = ControlAppearance.Secondary;
-        JustifyButton.Appearance = ControlAppearance.Transparent;
-        SendTypographyUpdate();
-    }
-
-    private void SendTypographyUpdate()
-    {
-        if (!_isEngineReady || ReaderWebView.CoreWebView2 == null) return;
-        var payload = new
-        {
-            action = "setTypography",
-            typography = new
-            {
-                fontFamily = _currentFont,
-                fontSize = _currentFontSize,
-                lineHeight = 1.6,
-                justifyText = _isJustified
-            }
-        };
-        ReaderWebView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(payload));
-    }
-
-    private void PostAction(string action)
-    {
-        if (!_isEngineReady || ReaderWebView.CoreWebView2 == null) return;
-        var payload = new { action = action };
-        ReaderWebView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(payload));
     }
 }

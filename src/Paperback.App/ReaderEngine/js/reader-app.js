@@ -11,6 +11,11 @@ let currentTypography = {
     justifyText: true
 };
 
+let autoHideTimeout = null;
+let isPinned = false;
+let isPopoverOpen = false;
+let isDrawerOpen = false;
+
 // Initialize PDF.js worker
 if (window.pdfjsLib) {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
@@ -36,14 +41,43 @@ function hideLoading() {
     overlay.classList.add('hidden');
 }
 
+// ==================== AUTO-HIDE CHROME ====================
+function showChrome() {
+    const topBar = document.getElementById('top-bar');
+    const bottomBar = document.getElementById('bottom-bar');
+    if (topBar) topBar.classList.remove('hidden');
+    if (bottomBar) bottomBar.classList.remove('hidden');
+    resetAutoHideTimer();
+}
+
+function hideChrome() {
+    if (isPinned || isPopoverOpen || isDrawerOpen) return;
+    const topBar = document.getElementById('top-bar');
+    const bottomBar = document.getElementById('bottom-bar');
+    if (topBar) topBar.classList.add('hidden');
+    if (bottomBar) bottomBar.classList.add('hidden');
+}
+
+function resetAutoHideTimer() {
+    clearTimeout(autoHideTimeout);
+    if (!isPinned && !isPopoverOpen && !isDrawerOpen) {
+        autoHideTimeout = setTimeout(hideChrome, 4500);
+    }
+}
+
+// Mouse movement inside window reveals toolbars
+window.addEventListener('mousemove', () => {
+    showChrome();
+});
+
+// ==================== DIMENSIONS & FLIP INITIALIZATION ====================
 function calculateDimensions() {
     const vWidth = window.innerWidth;
     const vHeight = window.innerHeight;
     const isSpread = vWidth >= 900;
 
-    // Available reading area leaving padding for window borders
     const availWidth = Math.max(300, vWidth - 40);
-    const availHeight = Math.max(400, vHeight - 40);
+    const availHeight = Math.max(400, vHeight - 80);
 
     let pageW, pageH;
     if (isSpread) {
@@ -91,6 +125,8 @@ function initPageFlip(pageW, pageH, isSpread) {
         const curPage = pageIdx + 1;
         const percent = total > 0 ? (curPage / total) * 100.0 : 0.0;
 
+        updateProgressUi(curPage, total, percent);
+
         postToHost({
             type: 'pageChanged',
             currentPage: curPage,
@@ -102,7 +138,19 @@ function initPageFlip(pageW, pageH, isSpread) {
     return pageFlip;
 }
 
-// Render PDF Document
+function updateProgressUi(current, total, percent) {
+    const slider = document.getElementById('page-slider');
+    const text = document.getElementById('page-progress-text');
+    if (slider) {
+        slider.max = Math.max(1, total);
+        slider.value = current;
+    }
+    if (text) {
+        text.textContent = `Page ${current} of ${total} (${Math.round(percent)}%)`;
+    }
+}
+
+// ==================== PDF LOADER ====================
 async function loadPdfDocument(fileUrl, targetStartPage) {
     showLoading('Rendering PDF pages...');
     try {
@@ -116,8 +164,6 @@ async function loadPdfDocument(fileUrl, targetStartPage) {
         const bookElem = document.getElementById('book');
         bookElem.innerHTML = '';
 
-        // Create page elements
-        const pageElements = [];
         for (let i = 1; i <= totalPages; i++) {
             const pageDiv = document.createElement('div');
             pageDiv.className = 'page';
@@ -130,10 +176,8 @@ async function loadPdfDocument(fileUrl, targetStartPage) {
             container.appendChild(canvas);
             pageDiv.appendChild(container);
             bookElem.appendChild(pageDiv);
-            pageElements.push(pageDiv);
         }
 
-        // Render first few pages immediately, lazy-load remaining
         const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
         for (let i = 1; i <= Math.min(totalPages, 6); i++) {
             await renderPdfPage(i, pageW, pageH, dpr);
@@ -147,12 +191,14 @@ async function loadPdfDocument(fileUrl, targetStartPage) {
         }
 
         hideLoading();
+        updateProgressUi(targetStartPage || 1, totalPages, ((targetStartPage || 1) / totalPages) * 100);
+
         postToHost({
             type: 'bookLoaded',
             totalPages: totalPages
         });
 
-        // Background render rest of the pages
+        // Lazy-render remaining pages
         setTimeout(async () => {
             for (let i = 7; i <= totalPages; i++) {
                 await renderPdfPage(i, pageW, pageH, dpr);
@@ -184,17 +230,16 @@ async function renderPdfPage(pageNum, pageW, pageH, dpr) {
         canvas.style.height = `${viewport.height / dpr}px`;
 
         const ctx = canvas.getContext('2d');
-        const renderContext = {
+        await page.render({
             canvasContext: ctx,
             viewport: viewport
-        };
-        await page.render(renderContext).promise;
+        }).promise;
     } catch (e) {
         console.warn(`Render error page ${pageNum}:`, e);
     }
 }
 
-// Render EPUB Chapters
+// ==================== EPUB LOADER ====================
 function loadEpubContent(bookData, targetStartPage) {
     showLoading('Formatting eBook pages...');
     try {
@@ -207,16 +252,13 @@ function loadEpubContent(bookData, targetStartPage) {
         const chapters = bookData.chapters || [];
         const pages = [];
 
-        // Paginate chapters
         let globalPage = 1;
         chapters.forEach((chap, cIdx) => {
             const chapTitle = chap.title || `Chapter ${cIdx + 1}`;
             const chapText = chap.text || chap.html || '';
 
-            // Split into paragraphs
             const paras = chapText.split(/\n\s*\n/).filter(p => p.trim().length > 0);
             
-            // Group paragraphs into pages based on height / character volume
             let currentParas = [];
             let currentChars = 0;
             const charsPerPage = isSpread ? 1100 : 900;
@@ -254,7 +296,6 @@ function loadEpubContent(bookData, targetStartPage) {
 
         const totalPages = pages.length;
 
-        // Build DOM elements for each page
         pages.forEach((p) => {
             const pageDiv = document.createElement('div');
             pageDiv.className = 'page';
@@ -291,6 +332,8 @@ function loadEpubContent(bookData, targetStartPage) {
         }
 
         hideLoading();
+        updateProgressUi(targetStartPage || 1, totalPages, ((targetStartPage || 1) / totalPages) * 100);
+
         postToHost({
             type: 'bookLoaded',
             totalPages: totalPages
@@ -310,7 +353,7 @@ function escapeHtml(text) {
 
 function applyTypographyToElement(elem) {
     if (!elem) return;
-    elem.style.fontFamily = currentTypography.fontFamily + ', serif';
+    elem.style.fontFamily = currentTypography.fontFamily;
     elem.style.fontSize = `${currentTypography.fontSize}px`;
     elem.style.lineHeight = currentTypography.lineHeight;
     elem.style.textAlign = currentTypography.justifyText ? 'justify' : 'left';
@@ -320,12 +363,211 @@ function applyTypographyToElement(elem) {
 function setTheme(theme) {
     currentTheme = theme.toLowerCase();
     document.body.className = `theme-${currentTheme}`;
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+    });
 }
 
 function setTypography(typo) {
     currentTypography = Object.assign(currentTypography, typo);
     const contents = document.querySelectorAll('.page-content');
     contents.forEach(applyTypographyToElement);
+}
+
+// ==================== UI CONTROLS & EVENT LISTENERS ====================
+document.addEventListener('DOMContentLoaded', () => {
+    // Top Bar Buttons
+    const btnLibrary = document.getElementById('btn-library');
+    if (btnLibrary) {
+        btnLibrary.addEventListener('click', (e) => {
+            e.stopPropagation();
+            postToHost({ type: 'closeReader' });
+        });
+    }
+
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', (e) => {
+            e.stopPropagation();
+            postToHost({ type: 'toggleFullscreen' });
+        });
+    }
+
+    const btnBookmark = document.getElementById('btn-bookmark');
+    if (btnBookmark) {
+        btnBookmark.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const curPage = pageFlip ? pageFlip.getCurrentPageIndex() + 1 : 1;
+            postToHost({ type: 'addBookmark', page: curPage });
+            btnBookmark.style.color = '#007AFF';
+            setTimeout(() => { btnBookmark.style.color = ''; }, 1200);
+        });
+    }
+
+    // Typography Popover Toggle
+    const btnTypography = document.getElementById('btn-typography');
+    const popover = document.getElementById('typography-popover');
+    if (btnTypography && popover) {
+        btnTypography.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeDrawer();
+            isPopoverOpen = !isPopoverOpen;
+            popover.classList.toggle('hidden', !isPopoverOpen);
+            resetAutoHideTimer();
+        });
+    }
+
+    // Table of Contents Drawer Toggle
+    const btnToc = document.getElementById('btn-toc');
+    const drawer = document.getElementById('toc-drawer');
+    const btnCloseToc = document.getElementById('btn-close-toc');
+    if (btnToc && drawer) {
+        btnToc.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closePopover();
+            isDrawerOpen = !isDrawerOpen;
+            drawer.classList.toggle('hidden', !isDrawerOpen);
+            resetAutoHideTimer();
+        });
+    }
+    if (btnCloseToc) {
+        btnCloseToc.addEventListener('click', closeDrawer);
+    }
+
+    // Theme Switchers
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const theme = btn.dataset.theme;
+            setTheme(theme);
+        });
+    });
+
+    // Font Selector
+    const fontSelect = document.getElementById('font-select');
+    if (fontSelect) {
+        fontSelect.addEventListener('change', (e) => {
+            setTypography({ fontFamily: e.target.value });
+        });
+    }
+
+    // Font Size Controls
+    const fontSlider = document.getElementById('font-size-slider');
+    const btnFontDecrease = document.getElementById('btn-font-decrease');
+    const btnFontIncrease = document.getElementById('btn-font-increase');
+
+    if (fontSlider) {
+        fontSlider.addEventListener('input', (e) => {
+            setTypography({ fontSize: parseInt(e.target.value, 10) });
+        });
+    }
+    if (btnFontDecrease && fontSlider) {
+        btnFontDecrease.addEventListener('click', () => {
+            let val = Math.max(13, parseInt(fontSlider.value, 10) - 1);
+            fontSlider.value = val;
+            setTypography({ fontSize: val });
+        });
+    }
+    if (btnFontIncrease && fontSlider) {
+        btnFontIncrease.addEventListener('click', () => {
+            let val = Math.min(32, parseInt(fontSlider.value, 10) + 1);
+            fontSlider.value = val;
+            setTypography({ fontSize: val });
+        });
+    }
+
+    // Justify / Align Left
+    const btnJustify = document.getElementById('btn-justify');
+    const btnAlignLeft = document.getElementById('btn-align-left');
+    if (btnJustify && btnAlignLeft) {
+        btnJustify.addEventListener('click', () => {
+            btnJustify.classList.add('active');
+            btnAlignLeft.classList.remove('active');
+            setTypography({ justifyText: true });
+        });
+        btnAlignLeft.addEventListener('click', () => {
+            btnAlignLeft.classList.add('active');
+            btnJustify.classList.remove('active');
+            setTypography({ justifyText: false });
+        });
+    }
+
+    // Pin Toolbar Toggle
+    const chkPin = document.getElementById('chk-pin-toolbar');
+    if (chkPin) {
+        chkPin.addEventListener('change', (e) => {
+            isPinned = e.target.checked;
+            showChrome();
+        });
+    }
+
+    // Bottom Bar Navigation Buttons
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    if (btnPrev) btnPrev.addEventListener('click', () => { if (pageFlip) pageFlip.flipPrev(); });
+    if (btnNext) btnNext.addEventListener('click', () => { if (pageFlip) pageFlip.flipNext(); });
+
+    // Scrubber Slider
+    const pageSlider = document.getElementById('page-slider');
+    if (pageSlider) {
+        pageSlider.addEventListener('input', (e) => {
+            if (pageFlip) {
+                const target = parseInt(e.target.value, 10) - 1;
+                pageFlip.turnToPage(target);
+            }
+        });
+    }
+
+    // Close overlays when clicking outside
+    document.addEventListener('click', (e) => {
+        if (isPopoverOpen && !e.target.closest('#typography-popover') && !e.target.closest('#btn-typography')) {
+            closePopover();
+        }
+        if (isDrawerOpen && !e.target.closest('#toc-drawer') && !e.target.closest('#btn-toc')) {
+            closeDrawer();
+        }
+    });
+
+    // Notify C# host that DOM is ready
+    postToHost({ type: 'ready' });
+    showChrome();
+});
+
+function closePopover() {
+    isPopoverOpen = false;
+    const popover = document.getElementById('typography-popover');
+    if (popover) popover.classList.add('hidden');
+    resetAutoHideTimer();
+}
+
+function closeDrawer() {
+    isDrawerOpen = false;
+    const drawer = document.getElementById('toc-drawer');
+    if (drawer) drawer.classList.add('hidden');
+    resetAutoHideTimer();
+}
+
+function renderTableOfContents(toc) {
+    const list = document.getElementById('toc-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!toc || toc.length === 0) {
+        list.innerHTML = '<div style="opacity:0.5; padding:12px;">No chapters found</div>';
+        return;
+    }
+
+    toc.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'toc-item';
+        row.innerHTML = `<span>${escapeHtml(item.title || 'Untitled')}</span><span class="toc-page">p. ${item.pageNumber || 1}</span>`;
+        row.addEventListener('click', () => {
+            if (pageFlip && typeof item.pageNumber === 'number') {
+                pageFlip.turnToPage(Math.max(0, item.pageNumber - 1));
+                closeDrawer();
+            }
+        });
+        list.appendChild(row);
+    });
 }
 
 // Window resizing
@@ -340,13 +582,20 @@ window.addEventListener('resize', () => {
     }, 250);
 });
 
-// Click in middle region triggers distraction-free toggle
+// Middle-click toggles toolbar visibility
 window.addEventListener('click', (e) => {
+    if (e.target.closest('.chrome-bar') || e.target.closest('.popover') || e.target.closest('.drawer')) {
+        return;
+    }
     const w = window.innerWidth;
     const x = e.clientX;
-    // If click is in the middle 40% of the screen
     if (x > w * 0.3 && x < w * 0.7) {
-        postToHost({ type: 'toggleUi' });
+        const topBar = document.getElementById('top-bar');
+        if (topBar && topBar.classList.contains('hidden')) {
+            showChrome();
+        } else {
+            hideChrome();
+        }
     }
 });
 
@@ -360,7 +609,7 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// WebView2 message listener from C# WPF host
+// C# WPF Host Message Receiver
 if (window.chrome && window.chrome.webview) {
     window.chrome.webview.addEventListener('message', (event) => {
         const msg = event.data;
@@ -369,6 +618,15 @@ if (window.chrome && window.chrome.webview) {
         switch (msg.action) {
             case 'loadBook':
                 currentBook = msg.book;
+                const titleElem = document.getElementById('book-title');
+                const authorElem = document.getElementById('book-author');
+                if (titleElem) titleElem.textContent = msg.book.title || 'Paperback';
+                if (authorElem) authorElem.textContent = msg.book.author || '';
+
+                if (msg.book.toc) {
+                    renderTableOfContents(msg.book.toc);
+                }
+
                 if (msg.book.format === 'PDF') {
                     loadPdfDocument(msg.book.fileUrl, msg.book.startPage || 1);
                 } else {
@@ -401,8 +659,3 @@ if (window.chrome && window.chrome.webview) {
         }
     });
 }
-
-// Notify host that the reader engine is ready
-window.addEventListener('DOMContentLoaded', () => {
-    postToHost({ type: 'ready' });
-});
