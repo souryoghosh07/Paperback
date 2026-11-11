@@ -78,12 +78,12 @@ jobs:
           path: dist/release/Paperback-win-x64.zip
           retention-days: 30
 
-      - name: Create GitHub Release (On tag or manual release trigger)
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
+      - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v1.0.0' }}
           files: dist/release/Paperback-win-x64.zip
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Paperback Latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Paperback v1.0.0 (Release)' }}
           generate_release_notes: true
           draft: false
           prerelease: false
